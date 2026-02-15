@@ -15,6 +15,11 @@ def create_app(config_class=None):
 
     db.init_app(app)
 
+    from app.models import Todo  # noqa: F401
+
+    with app.app_context():
+        db.create_all()
+
     # Blueprint registration will be added here
     # from app.routes import todo_bp
     # app.register_blueprint(todo_bp)

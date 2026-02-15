@@ -1,8 +1,13 @@
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, render_template
 from app import db
 from app.models import Todo
 
 todo_bp = Blueprint('todo', __name__)
+
+
+@todo_bp.route('/')
+def index():
+    return render_template('index.html')
 
 
 @todo_bp.route('/api/todos', methods=['GET'])

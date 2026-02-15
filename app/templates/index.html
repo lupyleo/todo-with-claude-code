@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Todo App</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Todo App</h1>
+            <p>Stay organized, get things done</p>
+        </header>
+
+        <div class="add-form">
+            <form id="todo-form">
+                <input type="text" id="title-input" placeholder="What needs to be done?" required>
+                <div class="form-row">
+                    <input type="text" id="desc-input" placeholder="Description (optional)">
+                    <button type="submit" class="btn btn-primary">Add</button>
+                </div>
+            </form>
+        </div>
+
+        <div class="toolbar">
+            <div class="filter-buttons">
+                <button class="filter-btn active" data-filter="all">All</button>
+                <button class="filter-btn" data-filter="active">Active</button>
+                <button class="filter-btn" data-filter="completed">Completed</button>
+            </div>
+            <input type="text" id="search-box" class="search-box" placeholder="Search...">
+        </div>
+
+        <ul id="todo-list" class="todo-list">
+        </ul>
+
+        <div id="todo-count" class="todo-count"></div>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>

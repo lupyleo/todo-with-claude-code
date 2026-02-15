@@ -20,8 +20,7 @@ def create_app(config_class=None):
     with app.app_context():
         db.create_all()
 
-    # Blueprint registration will be added here
-    # from app.routes import todo_bp
-    # app.register_blueprint(todo_bp)
+    from app.routes import todo_bp
+    app.register_blueprint(todo_bp)
 
     return app

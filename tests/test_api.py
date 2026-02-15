@@ -269,3 +269,111 @@ class TestToggleTodo:
         assert response.status_code == 404
         data = response.get_json()
         assert data['error'] == 'Todo not found'
+
+
+class TestEdgeCases:
+    def test_create_without_json_body(self, client):
+        response = client.post('/api/todos', content_type='application/json')
+        assert response.status_code in (400, 415, 500)
+
+    def test_create_with_wrong_content_type(self, client):
+        response = client.post(
+            '/api/todos',
+            data='title=Test',
+            content_type='application/x-www-form-urlencoded',
+        )
+        assert response.status_code == 415
+
+    def test_update_multiple_fields_at_once(self, client):
+        resp = create_todo(client, title='Original', description='Old desc')
+        todo_id = resp.get_json()['todo']['id']
+
+        response = client.put(
+            f'/api/todos/{todo_id}',
+            data=json.dumps({
+                'title': 'Updated',
+                'description': 'New desc',
+                'completed': True,
+            }),
+            content_type='application/json',
+        )
+        assert response.status_code == 200
+        data = response.get_json()
+        assert data['todo']['title'] == 'Updated'
+        assert data['todo']['description'] == 'New desc'
+        assert data['todo']['completed'] is True
+
+    def test_deleted_todo_not_in_list(self, client):
+        create_todo(client, title='Keep this')
+        resp = create_todo(client, title='Delete this')
+        todo_id = resp.get_json()['todo']['id']
+
+        client.delete(f'/api/todos/{todo_id}')
+
+        response = client.get('/api/todos')
+        data = response.get_json()
+        assert len(data['todos']) == 1
+        assert data['todos'][0]['title'] == 'Keep this'
+
+    def test_invalid_status_filter_returns_all(self, client):
+        create_todo(client, title='Todo 1')
+        create_todo(client, title='Todo 2')
+
+        response = client.get('/api/todos?status=invalid')
+        assert response.status_code == 200
+        data = response.get_json()
+        assert len(data['todos']) == 2
+
+    def test_bulk_create_and_filter(self, client):
+        for i in range(20):
+            create_todo(client, title=f'Todo {i}')
+
+        # Toggle every other one to completed
+        list_resp = client.get('/api/todos')
+        todos = list_resp.get_json()['todos']
+        for i, todo in enumerate(todos):
+            if i % 2 == 0:
+                client.patch(f'/api/todos/{todo["id"]}/toggle')
+
+        active_resp = client.get('/api/todos?status=active')
+        active_todos = active_resp.get_json()['todos']
+        assert len(active_todos) == 10
+
+        completed_resp = client.get('/api/todos?status=completed')
+        completed_todos = completed_resp.get_json()['todos']
+        assert len(completed_todos) == 10
+
+    def test_bulk_create_and_search(self, client):
+        create_todo(client, title='Buy apples')
+        create_todo(client, title='Buy bananas')
+        create_todo(client, title='Read a book')
+        create_todo(client, title='Write code')
+        create_todo(client, title='Buy oranges')
+
+        response = client.get('/api/todos?q=Buy')
+        data = response.get_json()
+        assert len(data['todos']) == 3
+        for todo in data['todos']:
+            assert 'Buy' in todo['title']
+
+    def test_search_case_sensitivity(self, client):
+        create_todo(client, title='Buy Groceries')
+        create_todo(client, title='buy milk')
+
+        # SQLite LIKE is case-insensitive for ASCII by default
+        response = client.get('/api/todos?q=buy')
+        data = response.get_json()
+        assert len(data['todos']) == 2
+
+    def test_create_returns_timestamps(self, client):
+        response = create_todo(client, title='Test timestamps')
+        data = response.get_json()
+        assert data['todo']['created_at'] is not None
+        assert data['todo']['updated_at'] is not None
+
+    def test_api_responses_are_json(self, client):
+        response = create_todo(client, title='Test json')
+        assert 'application/json' in response.content_type
+
+        response = client.get('/api/todos')
+        assert 'application/json' in response.content_type
